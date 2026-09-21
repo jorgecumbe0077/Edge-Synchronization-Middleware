@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>mAZ Bridge — Demo Lab V2</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">mAZ BRIDGE</div>
+      <h1>Demo Lab V2</h1>
+      <p class="subtitle">Edge Synchronization Middleware · Controlled Presentation</p>
+    </div>
+    <div class="status-badge">DEMO STATE</div>
+  </header>
+
+  <main>
+
+    <section class="architecture">
+      <div class="node">
+        <strong>Remote Warehouse</strong>
+        <span>Local operation</span>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node active">
+        <strong>mAZ Edge</strong>
+        <span>Persistence · Outbox · Recovery</span>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node">
+        <strong>Odoo 19</strong>
+        <span>PostgreSQL</span>
+      </div>
+    </section>
+
+    <section class="control-panel">
+      <h2>Scenarios</h2>
+
+      <div class="buttons">
+        <button onclick="runOfflineDemo()">Run Offline Demo</button>
+        <button onclick="networkFailure()">1 · Network Failure</button>
+        <button onclick="networkRecovery()">2 · Restore + Sync</button>
+        <button onclick="crashRecovery()">3 · Crash + ACK Loss</button>
+        <button onclick="partialRecovery()">4 · Partial Recovery</button>
+        <button onclick="raceScenario()">5 · Outbox V1 Race</button>
+        <button onclick="v2Scenario()">6 · V2 Ownership</button>
+        <button class="secondary" onclick="resetDemo()">Reset</button>
+      </div>
+    </section>
+
+    <section class="state-grid">
+
+      <div class="card">
+        <div class="card-title">EDGE STATE</div>
+        <div id="edgeState" class="value">READY</div>
+        <div id="edgeDetail" class="detail">Waiting for scenario</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">STOCK</div>
+        <div id="stock" class="value">10</div>
+        <div class="detail">Current quantity</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">EVENT</div>
+        <div id="event" class="mono">—</div>
+        <div id="eventStatus" class="detail">No event loaded</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">OUTBOX</div>
+        <div id="outbox" class="value">EMPTY</div>
+        <div id="outboxDetail" class="detail">No pending work</div>
+      </div>
+
+    </section>
+
+    <section class="timeline card">
+      <div class="card-title">OPERATION TRACE</div>
+      <div id="timeline"></div>
+    </section>
+
+    <section class="evidence card">
+      <div class="evidence-header">
+        <div>
+          <div class="card-title">CAPTURED REAL EVIDENCE</div>
+          <h2>Laboratory Results</h2>
+        </div>
+        <span class="evidence-badge">REAL LAB DATA</span>
+      </div>
+
+      <p class="warning">
+        The browser does not connect to the production laboratory.
+        The following results are captured from the actual Odoo 19 +
+        PostgreSQL investigation.
+      </p>
+
+      <div id="realEvidence"></div>
+    </section>
+
+    <section class="footer-note">
+      <strong>Scope:</strong>
+      controlled browser simulation of previously validated scenarios.
+      V2 ownership/fencing remains experimental and is not presented as production-ready.
+    </section>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
