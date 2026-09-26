@@ -209,23 +209,91 @@ The repository intentionally does not hide environment requirements behind a sin
 ---
 ## Odoo Integration
 
-The laboratory integration targets Odoo 19 with PostgreSQL.
+The laboratory integration targets Odoo 19 with PostgreSQL through the Odoo JSON-2 API.
 
-The integration boundary is deliberately kept separate from the local event engine:
+The project investigation identified two distinct integration paths:
 
-- the edge records and persists the operational event locally
-- the synchronization layer delivers the operation to the ERP
-- Odoo performs the corresponding inventory operation
-- PostgreSQL provides the ERP persistence layer
-- reconciliation reads ERP state to verify the resulting inventory condition
+### Direct synchronization path
 
-This separation allows the edge continuity problem to be investigated independently from the ERP application itself.
+The initial synchronization path delivers inventory operations through standard Odoo inventory methods exposed through JSON-2:
+
+- `stock.picking.create`
+- `stock.move.create`
+- `action_confirm`
+- `action_assign`
+- `button_validate`
+- `search_read` for verification
+
+This path was useful for establishing the initial integration and for exposing a concurrency failure mode: when multiple requests for the same logical event independently followed a search/create sequence, concurrent delivery could produce duplicate physical inventory operations.
+
+### Atomic event-processing path
+
+For the concurrency-sensitive workflow, the laboratory also uses a custom Odoo model method:
+
+`maz.inventory.event.process_event`
+
+This method is invoked through the native Odoo JSON-2 endpoint:
+
+`POST /json/2/maz.inventory.event/process_event`
+
+The method centralizes event ownership and the resulting inventory operation on the Odoo side. The implementation uses the event identifier as the logical identity of the operation and relies on PostgreSQL-backed concurrency control and uniqueness constraints.
+
+The I9 experiment exercised this atomic path directly with 20 simultaneous requests for the same `event_id`. In the tested scenario:
+
+20 concurrent requests
+→ 20 successful responses
+→ 1 fresh execution + 19 recovered executions
+→ 1 event
+→ 1 picking
+→ 1 move
+→ 0 duplicate physical operations
+
+The final Odoo state was independently inspected through the JSON-2 API and PostgreSQL.
+
+This result is experimental evidence of convergence for the tested workflow. It is not a universal exactly-once guarantee and does not constitute a production-readiness claim.
+
+### Architectural boundary
+
+The resulting experimental architecture is:
+
+Remote / Edge Operation
+        |
+        v
+   mAZ Bridge
+   |-- local event persistence
+   |-- durable outbox
+   |-- retry / replay
+   `-- reconciliation
+        |
+        v
+     Odoo JSON-2
+        |
+        |-- Direct synchronization path
+        |
+        `-- Atomic event-processing path
+                 |
+                 v
+       maz.inventory.event
+          process_event()
+                 |
+          +------+------+
+          |             |
+          v             v
+   stock.picking   stock.move
+          |             |
+          +------+------+
+                 |
+                 v
+             PostgreSQL
+
+The distinction between these paths is intentional. The direct path represents the initial integration approach; the atomic path represents the subsequent design response to the concurrency race identified during the laboratory investigation.
 
 The included `docker-compose.yml` describes the local Odoo/PostgreSQL laboratory environment used by the project.
 
-The integration is experimental and may require environment-specific configuration or adaptation.
+The integration remains experimental and may require environment-specific configuration or adaptation.
 
 ---
+
 ## What This Repository Demonstrates
 
 Based on the implemented components and the laboratory investigation, this repository demonstrates an engineering approach to edge/ERP operational continuity built around:
