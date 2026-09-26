@@ -340,4 +340,4 @@ The public repository is a sanitized representation of the laboratory work. Hist
 
 ## License
 
-License information will be added before public release.
+This project is licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file for the full license text.
